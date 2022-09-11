@@ -14,18 +14,19 @@ class HousePageEntity {
   bool? first;
   bool? empty;
 
-  HousePageEntity(
-      {this.content,
-      this.pageable,
-      this.last,
-      this.totalElements,
-      this.totalPages,
-      this.size,
-      this.number,
-      this.sort,
-      this.numberOfElements,
-      this.first,
-      this.empty});
+  HousePageEntity({
+    this.content,
+    this.pageable,
+    this.last,
+    this.totalElements,
+    this.totalPages,
+    this.size,
+    this.number,
+    this.sort,
+    this.numberOfElements,
+    this.first,
+    this.empty,
+  });
 
   HousePageEntity.fromJson(Map<String, dynamic> json) {
     if (json['content'] != null) {
@@ -216,6 +217,7 @@ class Content {
       hid: id ?? "",
       layout: layout ?? "nothing",
       compressedImage: compress ?? "",
+      onlineUrl: onlineUrl ?? "",
     );
     return data;
   }

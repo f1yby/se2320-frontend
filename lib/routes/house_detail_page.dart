@@ -8,6 +8,7 @@ import 'package:bruno/bruno.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../utils/constants.dart';
 import '../utils/result.dart';
@@ -31,6 +32,7 @@ class HouseDetail {
   final String hid;
   final String layout;
   final String compressedImage;
+  final String onlineUrl;
 
   HouseDetail({
     required this.title,
@@ -50,6 +52,7 @@ class HouseDetail {
     required this.location,
     required this.hid,
     required this.layout,
+    required this.onlineUrl,
   });
 }
 
@@ -132,9 +135,10 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
               if (response.statusCode != 200)
                 {
                   Fluttertoast.showToast(
-                      msg: "Login expired! Please login again",
-                      backgroundColor: Colors.red,
-                      gravity: ToastGravity.TOP,),
+                    msg: "Login expired! Please login again",
+                    backgroundColor: Colors.red,
+                    gravity: ToastGravity.TOP,
+                  ),
                 }
               else
                 {
@@ -302,7 +306,13 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
       mainButtonName: '打电话',
       mainButtonOnTap: () {},
       secondaryButtonName: '跟我聊',
-      secondaryButtonOnTap: () {},
+      secondaryButtonOnTap: () {
+        launchUrl(
+          Uri.parse(
+            widget.houseDetail.onlineUrl,
+          ),
+        );
+      },
       iconButtonList: [
         //构造Icon按钮
         BrnVerticalIconButton(

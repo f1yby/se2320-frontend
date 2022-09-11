@@ -15,7 +15,7 @@ class HouseList extends StatefulWidget {
       price2,
       keyword;
 
-  const HouseList({
+  HouseList({
     // this.filter,
     this.district = "",
     this.rentType = "",
@@ -28,45 +28,44 @@ class HouseList extends StatefulWidget {
     Key? key,
   }) : super(key: key);
 
+  HouseList copyWith({
+    String? district,
+    String? rentType,
+    String? rooms,
+    String? metroLine,
+    String? metroStation,
+    String? price1,
+    String? price2,
+    String? keyword,
+  }) {
+    return HouseList(
+      district: district ?? this.district,
+      rentType: rentType ?? this.rentType,
+      rooms: rooms ?? this.rooms,
+      metroLine: metroLine ?? this.metroLine,
+      metroStation: metroStation ?? this.metroStation,
+      price1: price1 ?? this.price1,
+      price2: price2 ?? this.price2,
+      keyword: keyword ?? this.keyword,
+    );
+  }
+
   @override
   State<HouseList> createState() => _HouseListState();
 }
 
 class _HouseListState extends State<HouseList> {
-  final List<HouseCard> _houseCards = <HouseCard>[];
-  final Set<int> hasFetched = {};
-  int page = 0, pageSize = 10;
-  late int totElements;
+  final _houseCards = <HouseCard>[];
+  final hasFetched = <int>{};
+  var page = 0;
+  final pageSize = 10;
+  var totElements = 0;
+  var cachedElements = 0;
+  var _isLastPage = false;
+  var isLoading = false;
 
-  bool _isLastPage = false, isLoading = false;
-
-  // List<HouseCard> getHouseCard() {
-  //   List<HouseCard> tmp = [];
-  //   if (isLast) return tmp;
-  //   for (int i = 0; i < 5; i++) {
-  //     tmp.add(
-  //       houseCardExample[Random().nextInt(houseCardExample.length)],
-  //     );
-  //   }
-  //   return tmp;
-  // }
-
-  Future<void> getPageOfHouseCard() async {
-    if (_isLastPage || hasFetched.contains(page)) return;
-    hasFetched.add(page);
-    isLoading = true;
-    await getHousePages();
-  }
-
-  Future<List<void>> getDatas() async {
-    return await Future.wait(
-      [
-        getPageOfHouseCard(),
-      ],
-    );
-  }
-
-  Future<void> getHousePages() async {
+  Future<void> getHouses(int page) async {
+    if (_isLastPage) return;
     await fetchHousePage(
             widget.district,
             widget.price1,
@@ -78,69 +77,82 @@ class _HouseListState extends State<HouseList> {
             widget.keyword,
             page,
             pageSize)
-        .then((value) => {
-              debugPrint("fetchHousePage: $page ${value.last!}"),
-              // debugPrint(jsonEncode(value.toJson())),
-              // value.content?.forEach((element) {
-              //   debugPrint(jsonEncode(element.toJson()));
-              // }),
+        .then(
+      (value) {
+        value.content?.forEach(
+          (e) {
+            _houseCards.add(
+              e.toHouseCard(),
+            );
+          },
+        );
+        // debugPrint("fetchHousePage: $page $_houseCards"),
+        setState(
+          () {
+            _isLastPage = value.last!;
+            this.page = page;
+            totElements = value.totalElements!;
+            cachedElements += 10;
+            isLoading = false;
+          },
+        );
+      },
+    );
+  }
 
-              value.content?.forEach((e) {
-                _houseCards.add(e.toHouseCard());
-              }),
-              // debugPrint("fetchHousePage: $page $_houseCards"),
-              _isLastPage = value.last!,
-              isLoading = false,
-              page++,
-              totElements = value.totalElements!,
-            });
+  Future<void> init() async {
+    await fetchHousePage(
+            widget.district,
+            widget.price1,
+            widget.price2,
+            widget.rentType,
+            widget.rooms,
+            widget.metroLine,
+            widget.metroStation,
+            widget.keyword,
+            page,
+            pageSize)
+        .then(
+      (value) {
+        setState(() {
+          value.content?.forEach(
+                (e) {
+              _houseCards.add(
+                e.toHouseCard(),
+              );
+            },
+          );
+          _isLastPage = value.last!;
+          page = 0;
+          totElements = value.totalElements!;
+          cachedElements = 10;
+          isLoading = false;
+        });
+
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    _houseCards.clear();
-    hasFetched.clear();
-    page = 0;
-    _isLastPage = isLoading = false;
-    return FutureBuilder(
-        future: getDatas(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            return ListView.separated(
-              shrinkWrap: true,
-              //加了这个HouseList外面就不用了加Container或Expanded了
-              itemCount: totElements + 1,
-              padding: const EdgeInsets.all(16.0),
-              itemBuilder: (context, index) {
-                if (index >= _houseCards.length) {
-                  getPageOfHouseCard();
-                  // _houseCards.addAll(
-                  //   getHouseCard(),
-                  // ); /*4*/
-                }
-                // while (isLoading);
-                if (index >= _houseCards.length) {
-                  if (_isLastPage) {
-                    if (index == _houseCards.length)
-                      return const Text("已经到底部了~~");
-                    return const Divider();
-                  }
-                  if (isLoading) {
-                    if (index == _houseCards.length) {
-                      return Text("Loading~");
-                    }
-                    return const Divider();
-                  }
-                }
-                return _houseCards[index];
-              },
-              separatorBuilder: (BuildContext context, int index) {
-                return const Divider();
-              },
-            );
-          } else {
-            return const Center(child: CircularProgressIndicator());
-          }
-        });
+    return ListView.separated(
+      shrinkWrap: true,
+      //加了这个HouseList外面就不用了加Container或Expanded了
+      itemCount: cachedElements + 1,
+      padding: const EdgeInsets.all(16.0),
+      itemBuilder: (context, index) {
+        if (index < cachedElements) {
+          return _houseCards[index];
+        } else {
+          getHouses(page + 1);
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+      },
+      separatorBuilder: (BuildContext context, int index) {
+        return const Divider();
+      },
+    );
   }
 }
